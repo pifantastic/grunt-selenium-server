@@ -86,13 +86,43 @@ module.exports = function (grunt) {
     grunt.log.ok('Starting Selenium server...');
 
     // Spawn server process.
+    grunt.log.ok('Using (roughly) command: java ' + args.join(' '));
     var spawn = require('child_process').spawn;
     childProcesses[target] = spawn('java', args);
+
+    grunt.event.emit('selenium.start', target, childProcesses[target]);
 
     var pid = childProcesses[target].pid;
     grunt.log.ok('Boom, got it. pid is ' + pid + ' in case you give a shit.');
 
-    cb(null);
+    var complete = false;
+
+    childProcesses[target].stdout.on('data', function(data) {
+      if (data.toString().match(/Started SocketListener on .+:\d+/)) {
+        if (complete) return;
+        grunt.log.ok('Selenium server SocketListener started.');
+
+        // Wait a tiny bit more time just because it's java and I'm worried.
+        setTimeout(function(){
+          complete = true;
+          cb(null);
+        }, 2000);
+      }
+    });
+
+    childProcesses[target].stderr.on('data', function(data) {
+      grunt.log.error(data.toString());
+    });
+
+    // Timeout case
+    setTimeout(function() {
+      if (!complete) {
+        complete = true;
+        // Try to clean up better after ourselves
+        childProcesses[target].kill('SIGTERM');
+        cb(new Error('Timeout waiting for selenium to start.'));
+      }
+    }, 30000);
   }
 
   /**
@@ -104,7 +134,7 @@ module.exports = function (grunt) {
 
     // Set default options.
     var options = this.options({
-      downloadUrl: 'https://selenium.googlecode.com/files/selenium-server-standalone-2.37.0.jar',
+      downloadUrl: 'https://selenium.googlecode.com/files/selenium-server-standalone-2.42.2.jar',
       downloadLocation: '/tmp',
       serverOptions: {}
     });
@@ -147,4 +177,3 @@ module.exports = function (grunt) {
   });
 
 };
-
