@@ -134,7 +134,7 @@ module.exports = function (grunt) {
 
     // Set default options.
     var options = this.options({
-      downloadUrl: 'https://selenium.googlecode.com/files/selenium-server-standalone-2.42.2.jar',
+      downloadUrl: 'https://selenium-release.storage.googleapis.com/2.42/selenium-server-standalone-2.42.2.jar',
       downloadLocation: '/tmp',
       serverOptions: {}
     });
