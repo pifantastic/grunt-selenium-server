@@ -83,6 +83,10 @@ module.exports = function (grunt) {
       args.push(options.serverOptions[key]);
     });
 
+    Object.keys(options.systemProperties).forEach(function (key) {
+      args.push('-D' + key + '=' + options.systemProperties[key]);
+    });
+
     grunt.log.ok('Starting Selenium server...');
 
     // Spawn server process.
@@ -110,9 +114,11 @@ module.exports = function (grunt) {
       }
     });
 
-    childProcesses[target].stderr.on('data', function(data) {
-      grunt.log.error(data.toString());
-    });
+    if(options.showErrors || options.showErrors == undefined){
+      childProcesses[target].stderr.on('data', function(data) {
+        grunt.log.error(data.toString());
+      });
+    }
 
     // Timeout case
     setTimeout(function() {
@@ -120,7 +126,7 @@ module.exports = function (grunt) {
         complete = true;
         // Try to clean up better after ourselves
         childProcesses[target].kill('SIGTERM');
-        cb(new Error('Timeout waiting for selenium to start.'));
+        cb(new Error('Timeout waiting for selenium to start.  Check if an instance of selenium is already running.'));
       }
     }, 30000);
   }
@@ -136,7 +142,8 @@ module.exports = function (grunt) {
     var options = this.options({
       downloadUrl: 'https://selenium-release.storage.googleapis.com/2.42/selenium-server-standalone-2.42.2.jar',
       downloadLocation: '/tmp',
-      serverOptions: {}
+      serverOptions: {},
+      systemProperties: {}
     });
 
     grunt.verbose.writeflags(options, 'Options');
@@ -175,5 +182,4 @@ module.exports = function (grunt) {
       childProcesses[target].kill('SIGTERM');
     }
   });
-
 };
