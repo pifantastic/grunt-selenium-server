@@ -2,6 +2,7 @@
 module.exports = function (grunt) {
 
   var fs = require('fs');
+  var os = require('os');
   var path = require('path');
   var url = require('url');
   var request = require('request');
@@ -35,6 +36,9 @@ module.exports = function (grunt) {
 
     // Start downloading and showing progress.
     request(options.downloadUrl).on('response', function (res) {
+      if(res.statusCode >= 200 && res.statusCode < 300) {
+          grunt.fail.fatal(options.downloadUrl + " returns " + res.statusCode);
+      }
       // Full length of file.
       var len = parseInt(res.headers['content-length'], 10);
 
@@ -141,7 +145,7 @@ module.exports = function (grunt) {
     // Set default options.
     var options = this.options({
       downloadUrl: 'https://selenium-release.storage.googleapis.com/2.42/selenium-server-standalone-2.42.2.jar',
-      downloadLocation: '/tmp',
+      downloadLocation: os.tmpdir(),
       serverOptions: {},
       systemProperties: {}
     });
