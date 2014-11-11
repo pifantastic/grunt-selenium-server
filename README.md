@@ -15,14 +15,19 @@ grunt.loadNpmTasks('grunt-selenium-server');
 ```
 
 
-Grunt config example:
+Grunt config example (with default options):
 ```js
-'selenium-server-start': {
+'start-selenium-server': {
   dev: {
-
+    options: {
+      downloadUrl: 'https://selenium-release.storage.googleapis.com/2.42/selenium-server-standalone-2.42.2.jar',
+      downloadLocation: '/tmp',
+      serverOptions: {},
+      systemProperties: {}
+    }
   }
 },
-'selenium-server-stop': {
+'stop-selenium-server': {
   dev: {
 
   }
