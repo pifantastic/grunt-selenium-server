@@ -105,7 +105,8 @@ module.exports = function (grunt) {
 
     var complete = false;
 
-    childProcesses[target].stdout.on('data', function(data) {
+    // Reading stream see if selenium has started
+    function hasSeleniumStarted(data) {
       if (data.toString().match(/Started SocketListener on .+:\d+/)) {
         if (complete) return;
         grunt.log.ok('Selenium server SocketListener started.');
@@ -116,13 +117,12 @@ module.exports = function (grunt) {
           cb(null);
         }, 2000);
       }
-    });
-
-    if(options.showErrors || options.showErrors == undefined){
-      childProcesses[target].stderr.on('data', function(data) {
-        grunt.log.error(data.toString());
-      });
     }
+
+    // < 2.43.0 outputs to stdout
+    childProcesses[target].stdout.on('data', hasSeleniumStarted);
+    // >= 2.43.0 outputs to stdout
+    childProcesses[target].stderr.on('data', hasSeleniumStarted);
 
     // Timeout case
     setTimeout(function() {
