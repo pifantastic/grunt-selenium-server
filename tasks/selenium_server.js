@@ -36,7 +36,7 @@ module.exports = function (grunt) {
 
     // Start downloading and showing progress.
     request(options.downloadUrl).on('response', function (res) {
-      if(res.statusCode >= 200 && res.statusCode < 300) {
+      if(res.statusCode > 200 && res.statusCode < 300) {
           grunt.fail.fatal(options.downloadUrl + " returns " + res.statusCode);
       }
       // Full length of file.
