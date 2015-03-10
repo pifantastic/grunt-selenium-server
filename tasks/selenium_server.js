@@ -7,6 +7,8 @@ module.exports = function (grunt) {
   var url = require('url');
   var request = require('request');
   var ProgressBar = require('progress');
+  var async = require('async');
+  var unzip = require('unzip');
 
   /**
    * References running server processes.
@@ -16,28 +18,28 @@ module.exports = function (grunt) {
   var childProcesses = {};
 
   /**
-   * Download the Selenium Server jar file.
+   * Download file from web.
    *
-   * @param  {Object}   options Grunt task options.
-   * @param  {Function} cb
+   * @param {string}   fileTo  - path save a file.
+   * @param {string}   urlFrom - url for downloading a file
+   * @param {Function} cb      - callback function
    */
-  function downloadJar (options, cb) {
+  function downloadFile (fileTo, urlFrom, cb) {
     // Where to save jar to.
-    var destination = path.join(options.downloadLocation, path.basename(options.downloadUrl));
-
     // If it's already there don't download it.
-    if (fs.existsSync(destination)) {
-      return cb(destination, null);
+    if (fs.existsSync(fileTo)) {
+      return cb(fileTo, null);
     }
 
-    grunt.log.ok('Saving jar to: ' + destination);
+    grunt.log.ok('Saving file to: ' + fileTo);
 
-    var writeStream = fs.createWriteStream(destination);
+    var writeStream = fs.createWriteStream(fileTo);
 
     // Start downloading and showing progress.
-    request(options.downloadUrl).on('response', function (res) {
+    request(urlFrom).on('response', function (res) {
       if(res.statusCode > 200 && res.statusCode < 300) {
-          grunt.fail.fatal(options.downloadUrl + " returns " + res.statusCode);
+        grunt.log.ok("grunt fail");
+        grunt.fail.fatal(urlFrom + " returns " + res.statusCode);
       }
       // Full length of file.
       var len = parseInt(res.headers['content-length'], 10);
@@ -60,12 +62,65 @@ module.exports = function (grunt) {
       res.on('end', function () {
         writeStream.end();
         grunt.log.ok('done.');
-        cb(destination, null);
+        cb(fileTo, null);
       });
 
       // Download error.
       res.on('error', function (err) {
         cb(null, err);
+      });
+    });
+  }
+
+  /**
+   * Download files for Selenium Server.
+   *
+   * @param {Object}   options - options Grunt task options.
+   * @param {Function} cb      - callback function
+   */
+  function downloadFiles(options, cb) {
+    var callback = cb;
+    var serverFileName;
+    var destination = path.join(options.downloadLocation, path.basename(options.downloadUrls.server));
+    downloadFile(destination, options.downloadUrls.server, function(fileName){
+      serverFileName = fileName;
+      async.eachSeries(options.downloadUrls.drivers, function(driver, cb2){
+        if (fs.existsSync(path.join(options.downloadLocation, path.basename(driver.url))) ||
+            driver.bin && fs.existsSync(path.join(options.downloadLocation, path.basename(driver.bin)))) {
+          cb2(null);
+        } else
+          downloadFile(path.join(options.downloadLocation, path.basename(driver.url)), driver.url, function(fileName){
+            if (path.extname(fileName) == '.zip'){
+              if (driver.bin) {
+                fs.createReadStream(fileName)
+                  .pipe(unzip.Parse())
+                  .on(
+                  'entry', function (entry) {
+                    var fName = entry.path;
+                    var type = entry.type; // 'Directory' or 'File'
+                    var size = entry.size;
+                    if (path.basename(fName, path.extname(fName)) === path.basename(driver.bin, path.extname(driver.bin))) {
+                      entry.pipe(fs.createWriteStream(path.join(options.downloadLocation, fName)));
+                      fs.unlink(fileName);
+                      cb2(null);
+                    } else {
+                      entry.autodrain();
+                    }
+                  }
+                );
+              } else {
+                fs.createReadStream(fileName).pipe(unzip.Extract({ path: options.downloadLocation }));
+              }
+            } else {
+              cb2(null);
+            }
+          });
+      }, function(result){
+        if (!result){
+          cb(serverFileName, null);
+        } else {
+          cb(null, result);
+        }
       });
     });
   }
@@ -132,7 +187,7 @@ module.exports = function (grunt) {
         childProcesses[target].kill('SIGTERM');
         cb(new Error('Timeout waiting for selenium to start.  Check if an instance of selenium is already running.'));
       }
-    }, 30000);
+    }, 180000);
   }
 
   /**
@@ -143,17 +198,35 @@ module.exports = function (grunt) {
     var target = this.target;
 
     // Set default options.
-    var options = this.options({
-      downloadUrl: 'https://selenium-release.storage.googleapis.com/2.42/selenium-server-standalone-2.42.2.jar',
-      downloadLocation: os.tmpdir(),
-      serverOptions: {},
-      systemProperties: {}
-    });
+    var options = this.options(
+      {
+        downloadUrls    : {
+          "server" : 'http://selenium-release.storage.googleapis.com/2.45/selenium-server-standalone-2.45.0.jar',
+          "drivers": [
+            {
+              "name": "chrome",
+              "url" : "http://chromedriver.storage.googleapis.com/2.14/chromedriver_win32.zip",
+              "bin" : "chromedriver.exe"
+            },
+            {
+              "name": "ie",
+              "url" : "http://selenium-release.storage.googleapis.com/2.45/IEDriverServer_Win32_2.45.0.zip",
+              "bin" : "IEDriverServer.exe"
+            }
+          ]
+        },
+        downloadLocation: os.tmpdir(),
+        serverOptions: {
+          "port" : "4444"
+        },
+        systemProperties: {}
+      }
+    );
 
     grunt.verbose.writeflags(options, 'Options');
 
     // Download jar file. Doesn't do anything if the file's already been downloaded.
-    downloadJar(options, function (jar, err) {
+    downloadFiles(options, function (jar, err) {
       if (err) {
         grunt.log.error(err);
         return done(false);
@@ -165,7 +238,6 @@ module.exports = function (grunt) {
           grunt.log.error(err);
           return done(false);
         }
-
         done(true);
       });
     });
