@@ -1,6 +1,6 @@
 {
   "name": "grunt-selenium-server",
-  "version": "0.1.2",
+  "version": "0.1.3",
   "description": "Grunt task to start/stop a local Selenium standalon server.",
   "main": "Gruntfile.js",
   "author": "Aaron Forsander",
