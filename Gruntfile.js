@@ -30,5 +30,6 @@ module.exports = function (grunt) {
 
   grunt.loadTasks('tasks');
   grunt.loadNpmTasks('grunt-contrib-jshint');
+  grunt.registerTask('test', ['start-selenium-server:test', 'stop-selenium-server:test']);
   grunt.registerTask('default', ['jshint']);
 };
