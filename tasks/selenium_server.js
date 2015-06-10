@@ -107,8 +107,14 @@ module.exports = function (grunt) {
 
     // Reading stream see if selenium has started
     function hasSeleniumStarted(data) {
-      if (data.toString().match(/Started SocketListener on .+:\d+/)) {
-        if (complete) return;
+      var str = data.toString();
+      if (str.match(/Selenium is already running/)) {
+        cb(new Error(str));
+      }
+      if (str.match(/Selenium Server is up and running/) || str.match(/Started SocketListener on .+:\d+/)) {
+        if (complete) {
+          return;
+        }
         grunt.log.ok('Selenium server SocketListener started.');
 
         // Wait a tiny bit more time just because it's java and I'm worried.
@@ -121,7 +127,7 @@ module.exports = function (grunt) {
 
     // < 2.43.0 outputs to stdout
     childProcesses[target].stdout.on('data', hasSeleniumStarted);
-    // >= 2.43.0 outputs to stdout
+    // >= 2.43.0 outputs to stderr
     childProcesses[target].stderr.on('data', hasSeleniumStarted);
 
     // Timeout case
@@ -144,7 +150,7 @@ module.exports = function (grunt) {
 
     // Set default options.
     var options = this.options({
-      downloadUrl: 'https://selenium-release.storage.googleapis.com/2.42/selenium-server-standalone-2.42.2.jar',
+      downloadUrl: 'https://selenium-release.storage.googleapis.com/2.46/selenium-server-standalone-2.46.0.jar',
       downloadLocation: os.tmpdir(),
       serverOptions: {},
       systemProperties: {}
@@ -183,7 +189,7 @@ module.exports = function (grunt) {
     }
     else {
       grunt.log.ok('Sending kill signal to child process.');
-      childProcesses[target].kill('SIGTERM');
+      childProcesses[target].kill('SIGINT');
     }
   });
 };
