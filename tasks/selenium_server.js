@@ -36,8 +36,13 @@ module.exports = function (grunt) {
 
     // Start downloading and showing progress.
     request(options.downloadUrl).on('response', function (res) {
-      if(res.statusCode > 200 && res.statusCode < 300) {
-          grunt.fail.fatal(options.downloadUrl + " returns " + res.statusCode);
+      if(res.statusCode >= 400) {
+          fs.unlink(destination, function (err) {
+            if (err)
+              grunt.log.error(err);
+            cb(null, new Error(options.downloadUrl + " returns " + res.statusCode));
+          })
+          return;
       }
       // Full length of file.
       var len = parseInt(res.headers['content-length'], 10);
@@ -108,7 +113,7 @@ module.exports = function (grunt) {
     // Reading stream see if selenium has started
     function hasSeleniumStarted(data) {
       var str = data.toString();
-      if (str.match(/Selenium is already running/)) {
+      if (str.match(/^Error: /) || str.match(/Selenium is already running/)) {
         cb(new Error(str));
       }
       if (str.match(/Selenium Server is up and running/) || str.match(/Started SocketListener on .+:\d+/)) {
@@ -118,7 +123,7 @@ module.exports = function (grunt) {
         grunt.log.ok('Selenium server SocketListener started.');
 
         // Wait a tiny bit more time just because it's java and I'm worried.
-        setTimeout(function(){
+        setTimeout(function() {
           complete = true;
           cb(null);
         }, 2000);
@@ -129,6 +134,8 @@ module.exports = function (grunt) {
     childProcesses[target].stdout.on('data', hasSeleniumStarted);
     // >= 2.43.0 outputs to stderr
     childProcesses[target].stderr.on('data', hasSeleniumStarted);
+
+    childProcesses[target].on('error', cb);
 
     // Timeout case
     setTimeout(function() {

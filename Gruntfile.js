@@ -6,7 +6,10 @@
  * Licensed under the MIT license.
  */
 
+
 module.exports = function (grunt) {
+  var seleniumVersion = grunt.option('seleniumVersion') || '2.46.0';
+  var seleniumMinorVersion = seleniumVersion.split('.').slice(0, 2).join('.');
 
   grunt.initConfig({
     jshint: {
@@ -20,7 +23,11 @@ module.exports = function (grunt) {
     },
 
     'start-selenium-server': {
-      test: {}
+      test: {
+        options: {
+          downloadUrl: 'https://selenium-release.storage.googleapis.com/' + seleniumMinorVersion + '/selenium-server-standalone-' + seleniumVersion + '.jar'
+        }
+      }
     },
 
     'stop-selenium-server': {
