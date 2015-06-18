@@ -1,19 +1,22 @@
+var fs = require('fs');
+var os = require('os');
+var path = require('path');
+var url = require('url');
+var request = require('request');
+var ProgressBar = require('progress');
 
 module.exports = function (grunt) {
-
-  var fs = require('fs');
-  var os = require('os');
-  var path = require('path');
-  var url = require('url');
-  var request = require('request');
-  var ProgressBar = require('progress');
-
   /**
    * References running server processes.
    *
    * @type {Object}
    */
   var childProcesses = {};
+
+  function kill() {
+    for (target in childProcesses)
+      childProcesses[target].kill('SIGINT');
+  }
 
   /**
    * Download the Selenium Server jar file.
@@ -199,4 +202,8 @@ module.exports = function (grunt) {
       childProcesses[target].kill('SIGINT');
     }
   });
+
+  process.on('exit', kill);
+  process.on('SIGINT', kill);
+  process.on('uncaughtException', kill);
 };
