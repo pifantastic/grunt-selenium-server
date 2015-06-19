@@ -160,6 +160,7 @@ module.exports = function (grunt) {
 
     // Set default options.
     var options = this.options({
+      autostop: false,
       downloadUrl: 'https://selenium-release.storage.googleapis.com/2.46/selenium-server-standalone-2.46.0.jar',
       downloadLocation: os.tmpdir(),
       serverOptions: {},
@@ -185,6 +186,12 @@ module.exports = function (grunt) {
         done(true);
       });
     });
+
+    if (options.autostop) {
+      process.on('exit', kill);
+      process.on('SIGINT', kill);
+      process.on('uncaughtException', kill);
+    }
   });
 
   /**
@@ -202,8 +209,4 @@ module.exports = function (grunt) {
       childProcesses[target].kill('SIGINT');
     }
   });
-
-  process.on('exit', kill);
-  process.on('SIGINT', kill);
-  process.on('uncaughtException', kill);
 };
