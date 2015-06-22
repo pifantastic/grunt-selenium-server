@@ -1,19 +1,22 @@
+var fs = require('fs');
+var os = require('os');
+var path = require('path');
+var url = require('url');
+var request = require('request');
+var ProgressBar = require('progress');
 
 module.exports = function (grunt) {
-
-  var fs = require('fs');
-  var os = require('os');
-  var path = require('path');
-  var url = require('url');
-  var request = require('request');
-  var ProgressBar = require('progress');
-
   /**
    * References running server processes.
    *
    * @type {Object}
    */
   var childProcesses = {};
+
+  function kill() {
+    for (target in childProcesses)
+      childProcesses[target].kill('SIGINT');
+  }
 
   /**
    * Download the Selenium Server jar file.
@@ -157,6 +160,7 @@ module.exports = function (grunt) {
 
     // Set default options.
     var options = this.options({
+      autostop: false,
       downloadUrl: 'https://selenium-release.storage.googleapis.com/2.46/selenium-server-standalone-2.46.0.jar',
       downloadLocation: os.tmpdir(),
       serverOptions: {},
@@ -182,6 +186,12 @@ module.exports = function (grunt) {
         done(true);
       });
     });
+
+    if (options.autostop) {
+      process.on('exit', kill);
+      process.on('SIGINT', kill);
+      process.on('uncaughtException', kill);
+    }
   });
 
   /**
