@@ -18,6 +18,10 @@ module.exports = function (grunt) {
       childProcesses[target].kill('SIGINT');
   }
 
+  function getDestination(options) {
+    return path.join(options.downloadLocation, path.basename(options.downloadUrl));
+  }
+
   /**
    * Download the Selenium Server jar file.
    *
@@ -26,7 +30,7 @@ module.exports = function (grunt) {
    */
   function downloadJar (options, cb) {
     // Where to save jar to.
-    var destination = path.join(options.downloadLocation, path.basename(options.downloadUrl));
+    var destination = getDestination(options);
 
     // If it's already there don't download it.
     if (fs.existsSync(destination)) {
@@ -78,6 +82,10 @@ module.exports = function (grunt) {
     });
   }
 
+  function deleteJar(options, cb) {
+    fs.unlink(getDestination(options), cb);
+  }
+
   /**
    * Start a selenium server.
    *
@@ -116,10 +124,21 @@ module.exports = function (grunt) {
     // Reading stream see if selenium has started
     function hasSeleniumStarted(data) {
       var str = data.toString();
-      if (str.match(/^Error: /) || str.match(/Selenium is already running/)) {
+      var errRegex = /^Error: /;
+      if (str.match(/Selenium is already running/)) {
         cb(new Error(str));
-      }
-      if (str.match(/Selenium Server is up and running/) || str.match(/Started SocketListener on .+:\d+/)) {
+      } else if (str.match(errRegex)) {
+        str = str.replace(errRegex, '');
+        if (str.match(/^Invalid or corrupt jarfile /)) {
+          deleteJar(options, function(err) {
+            if (err)
+              return cb(err);
+            cb(new Error(str));
+          });
+        } else {
+          cb(new Error(str));
+        }
+      } else if (str.match(/Selenium Server is up and running/) || str.match(/Started SocketListener on .+:\d+/)) {
         if (complete) {
           return;
         }
