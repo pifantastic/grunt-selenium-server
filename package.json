@@ -6,13 +6,17 @@
   "author": "Aaron Forsander",
   "license": "MIT",
   "repository": "git@github.com:pifantastic/grunt-selenium-server.git",
-  "devDependencies": {
-    "grunt": "~0.4.1",
-    "grunt-contrib-jshint": "~0.7.0",
-    "grunt-contrib-nodeunit": "~0.2.2"
-  },
   "dependencies": {
     "request": "~2.27.0",
     "progress": "~1.1.2"
+  },
+  "devDependencies": {
+    "grunt": "~0.4.1",
+    "grunt-cli": "^0.1.13",
+    "grunt-contrib-jshint": "~0.7.0",
+    "grunt-contrib-nodeunit": "~0.2.2"
+  },
+  "scripts": {
+    "test": "grunt test"
   }
 }
