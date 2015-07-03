@@ -75,6 +75,11 @@ module.exports = function (grunt) {
         cb(destination, null);
       });
 
+      // Connection closed.
+      res.on('close', function (err) {
+        cb(null, err);
+      });
+
       // Download error.
       res.on('error', function (err) {
         cb(null, err);
