@@ -75,16 +75,18 @@ module.exports = function (grunt) {
         cb(null, destination);
       });
 
-      // Connection closed.
-      res.on('close', cb);
-
       // Download error.
-      res.on('error', cb);
+      res.on('error', function(err) {
+        cb(err);
+      });
 
       // Pipe the data to the writeStream
       res.pipe(writeStream);
     })
-    .on('error', cb);
+    .on('error', function(err) {
+      cb(err);
+    })
+    .end();
   }
 
   function deleteJar(options, cb) {
@@ -197,6 +199,11 @@ module.exports = function (grunt) {
     downloadJar(options, function (err, jar) {
       if (err) {
         grunt.log.error(err);
+        return done(false);
+      }
+
+      if (jar == null) {
+        grunt.log.error(new Error('jar file undefined'));
         return done(false);
       }
 
