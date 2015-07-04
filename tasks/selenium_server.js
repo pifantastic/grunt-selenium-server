@@ -34,7 +34,7 @@ module.exports = function (grunt) {
 
     // If it's already there don't download it.
     if (fs.existsSync(destination)) {
-      return cb(destination, null);
+      return cb(null, destination);
     }
 
     grunt.log.ok('Saving jar to: ' + destination);
@@ -42,17 +42,19 @@ module.exports = function (grunt) {
     var writeStream = fs.createWriteStream(destination);
 
     // Start downloading and showing progress.
-    request(options.downloadUrl).on('response', function (res) {
+    request(options.downloadUrl)
+    .on('response', function (res) {
       if(res.statusCode >= 400) {
-          fs.unlink(destination, function (err) {
-            if (err)
-              grunt.log.error(err);
-            cb(null, new Error(options.downloadUrl + " returns " + res.statusCode));
-          })
-          return;
+        fs.unlink(destination, function (err) {
+          if (err)
+            grunt.log.error(err);
+          cb(new Error(options.downloadUrl + " returns " + res.statusCode));
+        })
+        return;
       }
+
       // Full length of file.
-      var len = parseInt(res.headers['content-length'], 10);
+      var len = Number(res.headers['content-length']);
 
       // Super nifty progress bar.
       var bar = new ProgressBar(' downloading [:bar] :percent :etas', {
@@ -64,27 +66,25 @@ module.exports = function (grunt) {
 
       // Write new data to file.
       res.on('data', function (chunk) {
-        writeStream.write(chunk);
         bar.tick(chunk.length);
       });
 
       // Close file and holla back.
       res.on('end', function () {
-        writeStream.end();
         grunt.log.ok('done.');
-        cb(destination, null);
+        cb(null, destination);
       });
 
       // Connection closed.
-      res.on('close', function (err) {
-        cb(null, err);
-      });
+      res.on('close', cb);
 
       // Download error.
-      res.on('error', function (err) {
-        cb(null, err);
-      });
-    });
+      res.on('error', cb);
+
+      // Pipe the data to the writeStream
+      res.pipe(writeStream);
+    })
+    .on('error', cb);
   }
 
   function deleteJar(options, cb) {
@@ -194,7 +194,7 @@ module.exports = function (grunt) {
     grunt.verbose.writeflags(options, 'Options');
 
     // Download jar file. Doesn't do anything if the file's already been downloaded.
-    downloadJar(options, function (jar, err) {
+    downloadJar(options, function (err, jar) {
       if (err) {
         grunt.log.error(err);
         return done(false);

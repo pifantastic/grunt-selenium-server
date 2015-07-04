@@ -7,8 +7,8 @@
   "license": "MIT",
   "repository": "git@github.com:pifantastic/grunt-selenium-server.git",
   "dependencies": {
-    "request": "~2.27.0",
-    "progress": "~1.1.2"
+    "progress": "~1.1.2",
+    "request": "~2.27.0"
   },
   "devDependencies": {
     "grunt": "~0.4.1",
