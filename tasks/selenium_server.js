@@ -117,7 +117,7 @@ module.exports = function (grunt) {
     grunt.event.emit('selenium.start', target, childProcesses[target]);
 
     var pid = childProcesses[target].pid;
-    grunt.log.ok('Boom, got it. pid is ' + pid + ' in case you give a shit.');
+    grunt.log.ok('Boom, got it. pid is ' + pid + ' in case you care.');
 
     var complete = false;
 
