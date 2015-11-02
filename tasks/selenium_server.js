@@ -41,6 +41,14 @@ module.exports = function (grunt) {
 
     var writeStream = fs.createWriteStream(destination);
 
+    // When the writeStream.end() resolves it will trigger a finish event.
+    // We have to wait for this before we know everything has been flushed to the filesystem. 
+    // https://nodejs.org/api/stream.html#stream_writable_end_chunk_encoding_callback
+    writeStream.on('finish', function(){
+      grunt.log.ok('done.');
+      cb(destination, null);
+    });
+
     // Start downloading and showing progress.
     request(options.downloadUrl).on('response', function (res) {
       if(res.statusCode >= 400) {
@@ -68,11 +76,10 @@ module.exports = function (grunt) {
         bar.tick(chunk.length);
       });
 
-      // Close file and holla back.
+      // Tell the write stream that we are done calling write.
+      // The writeStream will emit a 'finish' event when everything has been written to the filesystem.
       res.on('end', function () {
         writeStream.end();
-        grunt.log.ok('done.');
-        cb(destination, null);
       });
 
       // Download error.
@@ -117,7 +124,7 @@ module.exports = function (grunt) {
     grunt.event.emit('selenium.start', target, childProcesses[target]);
 
     var pid = childProcesses[target].pid;
-    grunt.log.ok('Boom, got it. pid is ' + pid + ' in case you give a shit.');
+    grunt.log.ok('Boom, got it. pid is ' + pid + ' in case you care.');
 
     var complete = false;
 
